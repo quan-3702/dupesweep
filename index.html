@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DupeSweep – Duplicate File Finder</title>
+  <meta name="description" content="Find and remove duplicate files and similar photos on Windows. Scan any folder or drive, preview, auto-select and move or delete duplicates to free up space. Private, offline, no subscription.">
+  <meta name="theme-color" content="#0e7490">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><span>DupeSweep</span></div>
+    <nav class="tabs" id="tabs">
+      <button data-t="dupes" class="on">🧬 Duplicates <b id="cDupes"></b></button>
+      <button data-t="similar">🖼 Similar photos <b id="cSimilar"></b></button>
+      <button data-t="large">📦 Large files <b id="cLarge"></b></button>
+      <button data-t="empty">📁 Empty folders <b id="cEmpty"></b></button>
+    </nav>
+    <div class="top-btns">
+      <button id="moreBtn" class="tb">☰ More</button>
+      <button id="proBtn" class="pro-btn" hidden>★ Get Pro</button>
+    </div>
+    <div id="menu" class="menu" hidden>
+      <button id="csvBtn">📄 Export report (.csv) ★</button>
+      <button id="historyBtn">🧹 Cleaning history</button>
+      <hr>
+      <a href="help.html" target="_blank" rel="noopener">❓ How to use DupeSweep</a>
+      <a href="why.html" target="_blank" rel="noopener">💡 Why DupeSweep – compare</a>
+      <a href="mailto:thequan03072002@gmail.com?subject=DupeSweep%20feedback">✉ Feedback &amp; support</a>
+    </div>
+  </header>
+
+  <main class="pane">
+    <section class="side">
+      <h2>1. Folders to scan</h2>
+      <div id="folderList" class="folders"></div>
+      <button id="addFolder" class="add-btn">＋ Add a folder or drive</button>
+      <p class="hint" id="fsHint"></p>
+
+      <h2>2. What to look for</h2>
+      <div class="chips" id="typeChips"></div>
+      <label class="field">Ignore files smaller than
+        <select id="minSize"><option value="0">Keep all sizes</option><option value="1024">1 KB</option><option value="102400" selected>100 KB</option><option value="1048576">1 MB</option><option value="10485760">10 MB</option></select>
+      </label>
+      <label class="check"><input type="checkbox" id="optSimilar" checked> Find similar photos too <span class="pro-tag" id="simTag">Pro</span></label>
+      <label class="check"><input type="checkbox" id="optHidden"> Include hidden &amp; system folders</label>
+      <label class="field">Skip folders named (comma separated)<input id="skipNames" value="node_modules, .git, $RECYCLE.BIN, System Volume Information"></label>
+
+      <button id="scanBtn" class="primary big">🔍 Scan for duplicates</button>
+      <button id="stopBtn" class="ghost big" hidden>■ Stop</button>
+      <div class="stats" id="stats" hidden></div>
+    </section>
+
+    <section class="main-col">
+      <div id="welcome" class="welcome">
+        <div class="wel-ic">🧹</div>
+        <h1>Free up space by removing duplicate files</h1>
+        <p>Add a folder – Pictures, Downloads, Documents or a whole drive – and click <b>Scan</b>. DupeSweep compares file contents byte by byte, so files with different names are found too, and nothing is ever removed until you choose it.</p>
+        <ul class="wel-list">
+          <li>✔ Exact duplicates of any file type</li>
+          <li>✔ Similar photos – resized, re-saved or burst shots ★</li>
+          <li>✔ Large files and empty folders</li>
+          <li>✔ Move to a review folder or delete – your choice</li>
+          <li>✔ 100% offline – your files never leave your PC</li>
+        </ul>
+      </div>
+      <div id="progress" class="progress" hidden>
+        <div class="pbar"><i id="pfill"></i></div>
+        <p id="ptext"></p>
+      </div>
+      <div id="results" hidden>
+        <div class="rbar">
+          <span id="rSummary" class="rsum"></span>
+          <span class="grow"></span>
+          <label class="inline">Auto-select
+            <select id="ruleSel">
+              <option value="">– choose a rule –</option>
+              <option value="newest">Keep the newest, select the rest</option>
+              <option value="oldest">Keep the oldest, select the rest</option>
+              <option value="shortest">Keep the shortest path</option>
+              <option value="longest">Keep the longest path</option>
+              <option value="folder">Keep files in a folder I choose…</option>
+              <option value="largest">Keep the largest (similar photos)</option>
+              <option value="none">Clear all selections</option>
+            </select>
+          </label>
+          <input id="filterIn" placeholder="Filter by name or folder…">
+        </div>
+        <div id="groups" class="groups"></div>
+        <div id="moreGroups"></div>
+        <div class="actbar" id="actbar">
+          <span id="selInfo"></span>
+          <span class="grow"></span>
+          <button id="moveBtn" class="ghost">📂 Move selected to review folder</button>
+          <button id="delBtn" class="danger-btn">🗑 Delete selected</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="confirmDlg" class="dlg">
+    <h2 id="cTitle">Delete files?</h2>
+    <p id="cText"></p>
+    <label class="check" id="cAgreeRow"><input type="checkbox" id="cAgree"> I understand – deleted files do not go to the Recycle Bin</label>
+    <div class="row-btns"><button id="cOk" class="danger-btn">Delete</button><button id="cCancel" class="ghost">Cancel</button></div>
+  </dialog>
+
+  <dialog id="histDlg" class="dlg wide">
+    <h2>Cleaning history</h2>
+    <div id="histBody"></div>
+    <div class="row-btns"><button id="histClose" class="ghost">Close</button></div>
+  </dialog>
+
+  <dialog id="viewDlg" class="dlg wide">
+    <div id="viewBody"></div>
+    <div class="row-btns"><button id="viewClose" class="ghost">Close</button></div>
+  </dialog>
+
+  <dialog id="proDialog" class="dlg">
+    <h2>DupeSweep Pro</h2>
+    <p class="muted">One-time purchase. Yours forever on this Microsoft account – no subscription. Popular duplicate cleaners cost about $36 or more.</p>
+    <ul class="pro-list">
+      <li><strong>Unlimited cleaning</strong> <span class="muted">(Free: 25 files per scan)</span></li>
+      <li><strong>Similar photo finder</strong> – resized, edited and burst shots</li>
+      <li><strong>Smart auto-select</strong> – keep newest, oldest, shortest path or a folder you choose</li>
+      <li><strong>Empty folder cleanup</strong></li>
+      <li><strong>Export a report</strong> (.csv)</li>
+    </ul>
+    <p id="proMsg" class="pro-msg" hidden></p>
+    <p id="trialInfo" class="pro-msg" hidden></p>
+    <div class="row-btns">
+      <button id="trialBtn" class="ghost" hidden>Try every Pro feature free for 7 days</button>
+      <button id="buyBtn" class="primary">Unlock Pro</button>
+      <button id="restoreBtn" class="ghost">Restore purchase</button>
+      <button id="closePro" class="ghost">Not now</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+  <input id="dirIn" type="file" webkitdirectory multiple hidden>
+  <script src="app.js"></script>
+</body>
+</html>

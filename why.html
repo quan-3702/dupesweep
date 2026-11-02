@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why DupeSweep – duplicate file finder without a subscription</title>
+<meta name="description" content="DupeSweep finds duplicate files and similar photos on Windows, compares contents byte by byte and lets you move or delete copies safely. Pay once, no subscription.">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--g:#0e7490;--g2:#dff3f7;--ink:#1f2330;--mut:#5f6f6a;--line:#dde5e2;--bg:#f4f5f9;--card:#fff}
+@media (prefers-color-scheme:dark){:root{--g:#67d4e8;--g2:#12313a;--ink:#e9f0ed;--mut:#a3b2ad;--line:#2f3a37;--bg:#121715;--card:#1b2220}}
+*{box-sizing:border-box}body{margin:0;font:17px/1.55 'Segoe UI',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.wrap{max-width:980px;margin:0 auto;padding:0 18px}
+header{background:linear-gradient(135deg,#0e7490,#1596b8);color:#fff;padding:56px 0 64px}
+header h1{font-size:44px;line-height:1.1;margin:10px 0}header p{font-size:20px;max-width:640px;opacity:.95}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}.brand img{border-radius:10px}
+.cta{display:inline-block;background:#fff;color:#0e7490;font-weight:800;padding:14px 22px;border-radius:12px;text-decoration:none;margin-top:14px}
+.price{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:-34px 0 30px}
+.pcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.pcard h3{margin:0 0 6px;color:var(--mut);font-size:15px;text-transform:uppercase;letter-spacing:.05em}
+.pcard .big{font-size:40px;font-weight:800}.pcard.us{border:2px solid var(--g)}.pcard.us .big{color:var(--g)}
+.pcard small{color:var(--mut)}
+h2{font-size:30px;margin:44px 0 12px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:center}th:first-child,td:first-child{text-align:left}
+th{background:var(--g2);font-size:14px}td.y{color:var(--g);font-weight:800}td.n{color:#b42318}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.f{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}.f b{display:block;font-size:19px;margin-bottom:4px}.f span{color:var(--mut)}
+.f .ic{font-size:30px}
+.note{color:var(--mut);font-size:13px;margin:10px 0 50px}
+footer{padding:30px 0 50px;color:var(--mut);font-size:14px}
+@media (max-width:700px){header h1{font-size:32px}.price{grid-template-columns:1fr;margin-top:-24px}th,td{padding:9px 8px;font-size:14px}}
+</style></head><body>
+<header><div class="wrap">
+  <div class="brand"><img src="icon-192.png" width="40" height="40" alt="">DupeSweep</div>
+  <h1>Get your disk space back.<br>Safely, privately, once.</h1>
+  <p>DupeSweep finds duplicate files and similar photos anywhere on your PC, shows you every copy side by side and lets you move or delete the extras. Your files never leave your computer.</p>
+  <a class="cta" href="https://apps.microsoft.com/detail/9P5LWPHRVRZV" id="storeLink">Get it free on Microsoft Store</a>
+</div></header>
+<main class="wrap">
+  <div class="price">
+    <div class="pcard"><h3>Typical duplicate cleaner</h3><div class="big">$36+</div><small>Popular paid duplicate finders on Microsoft Store cost $35.99 or more, and some PC cleaners renew every year.¹</small></div>
+    <div class="pcard us"><h3>DupeSweep</h3><div class="big" id="ourPrice">$24.99 once</div><small id="ourNote">Find every duplicate free and clean 25 files per scan. Try every Pro feature for 7 days, then unlock Pro with one payment – yours forever.</small></div>
+  </div>
+  <h2>What DupeSweep does</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>DupeSweep</th><th>Typical cleaner¹</th></tr></thead>
+    <tbody>
+      <tr><td>Exact duplicates of any file type</td><td class="y">✓ byte-by-byte (SHA-256)</td><td class="y">✓</td></tr>
+      <tr><td>Similar photos (resized, edited, bursts)</td><td class="y">✓ Pro</td><td>Varies</td></tr>
+      <tr><td>Several folders and drives at once</td><td class="y">✓</td><td class="y">✓</td></tr>
+      <tr><td>Auto-select: newest, oldest, path, folder</td><td class="y">✓</td><td class="y">✓</td></tr>
+      <tr><td>Safe “review folder” instead of deleting</td><td class="y">✓</td><td>Varies</td></tr>
+      <tr><td>Warning before removing every copy</td><td class="y">✓</td><td>Varies</td></tr>
+      <tr><td>Large files and empty folders</td><td class="y">✓</td><td>Varies</td></tr>
+      <tr><td>Price</td><td class="y">$24.99 once</td><td class="n">$36+ or yearly</td></tr>
+      <tr><td>Uploads, ads or tracking</td><td class="y">None</td><td>Depends</td></tr>
+    </tbody>
+  </table>
+  <h2>Built to be safe</h2>
+  <div class="grid">
+    <div class="f"><div class="ic">🔬</div><b>Compares contents, not names</b><span>Files are grouped by size, then checked byte by byte. “IMG_0042 (1).jpg” and “Beach.jpg” are matched only if they really are the same.</span></div>
+    <div class="f"><div class="ic">✅</div><b>One copy is always kept</b><span>The oldest copy is marked “keep” automatically, and DupeSweep warns you if every copy of a file is selected.</span></div>
+    <div class="f"><div class="ic">📂</div><b>Review folder</b><span>Move extras into a dated folder first, check them, then delete that one folder when you're sure.</span></div>
+    <div class="f"><div class="ic">🖼</div><b>Similar photo finder</b><span>Finds resized copies, edits, WhatsApp re-saves and burst shots that are not byte-identical.</span></div>
+    <div class="f"><div class="ic">👀</div><b>Preview first</b><span>Photos, videos, music and PDFs open right in DupeSweep before you decide.</span></div>
+    <div class="f"><div class="ic">🔒</div><b>100% offline</b><span>No account and no upload. Your photos and documents never leave your PC.</span></div>
+  </div>
+  <p class="note">¹ Based on Microsoft Store listings of popular paid duplicate file finders in November 2026 (for example $35.99). Prices change – check each listing.</p>
+</main>
+<footer><div class="wrap">DupeSweep by NTQ37 · <a href="help.html">How to use</a> · <a href="privacy.html">Privacy</a> · <a href="mailto:thequan03072002@gmail.com">Contact</a></div></footer>
+</body></html>
