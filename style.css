@@ -147,3 +147,5 @@ table.guests { width: 100%; border-collapse: collapse; }
   .tabs { order: 3; width: 100%; overflow-x: auto; margin-left: 0; }
   .tabs button { white-space: nowrap; padding: 6px 10px; }
 }
+.fb-note { color: var(--muted); font-size: 13px; line-height: 1.45; margin: 8px 0 0; overflow-wrap: anywhere; }
+.fb-note a { color: var(--accent); }

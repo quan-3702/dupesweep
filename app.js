@@ -24,21 +24,33 @@ const PRO_IDS = [PRO_SKU];
 let STORE_URL = 'https://apps.microsoft.com/detail/9P5LWPHRVRZV';
 let proAvailable = false, proSku = PRO_SKU, isPro = false;
 proAvailable = true; // owner's rule: Pro is never free – free limits apply everywhere (website, Store, offline) until Pro is bought
-try { isPro = localStorage.getItem('dupesweep-pro') === '1'; } catch (_) {}
+try { // the saved Pro flag is trusted only in the Store app, and only for 30 days after the Store last confirmed it
+  if ('getDigitalGoodsService' in window && localStorage.getItem('dupesweep-pro') === '1') {
+    const ok = localStorage.getItem('dupesweep-pro-ok'), t = Number(ok), now = Date.now();
+    if (ok === null) { localStorage.setItem('dupesweep-pro-ok', String(now)); isPro = true; } // saved by an older version: counts as confirmed now, once
+    else isPro = t > 0 && t <= now && now - t < 30 * 864e5;
+  }
+} catch (_) {}
+function savePro(v) { // only called when the Store answered
+  try { if (v) { localStorage.setItem('dupesweep-pro', '1'); localStorage.setItem('dupesweep-pro-ok', String(Date.now())); } else { localStorage.removeItem('dupesweep-pro'); localStorage.removeItem('dupesweep-pro-ok'); } } catch (_) {}
+}
 const TRIAL_DAYS = 7;
 let trialStart = 0;
-try { trialStart = Number(localStorage.getItem('dupesweep-trial')) || 0; } catch (_) {}
+// a trial start that is missing = no trial yet; one in the future, NaN or garbage counts as an ended trial (1 = long ago)
+const trialVal = (v) => { if (v == null) return 0; const n = Number(v); return n > 0 && n <= Date.now() ? n : 1; };
+try { trialStart = trialVal(localStorage.getItem('dupesweep-trial')); } catch (_) {}
 const trialLeft = () => (trialStart ? Math.max(0, Math.ceil((trialStart + TRIAL_DAYS * DAY - Date.now()) / DAY)) : 0);
 const trialActive = () => trialLeft() > 0;
 const unlocked = () => isPro || !proAvailable || trialActive();
 const FREE_DOCS = 1;
 async function loadTrial() {
-  const t = await dbGet('trial').catch(() => 0);
-  trialStart = Math.max(trialStart, Number(t) || 0);
+  const t = await dbGet('trial').catch(() => null);
+  trialStart = Math.max(trialStart, trialVal(t));
   if (trialStart) { try { localStorage.setItem('dupesweep-trial', String(trialStart)); } catch (_) {} dbSet('trial', trialStart).catch(() => {}); }
 }
 async function startTrial() {
-  if (trialStart) return;
+  await loadTrial(); // a trial started earlier (in either store) cannot be started again
+  if (trialStart) { setPro(isPro); openPro(''); return; }
   trialStart = Date.now();
   try { localStorage.setItem('dupesweep-trial', String(trialStart)); } catch (_) {}
   await dbSet('trial', trialStart).catch(() => {});
@@ -51,7 +63,6 @@ async function billing() {
 }
 function setPro(v) {
   isPro = v;
-  try { localStorage.setItem('dupesweep-pro', v ? '1' : '0'); } catch (_) {}
   const b = $('proBtn');
   b.textContent = proLabel();
   b.classList.toggle('is-pro', v || trialActive());
@@ -75,7 +86,7 @@ async function checkPro() {
     if (details[0]) { proSku = details[0].itemId; if (!PRO_IDS.includes(proSku)) PRO_IDS.push(proSku); }
     const list = await svc.listPurchases();
     const owned = list.some((p) => PRO_IDS.includes(p.itemId));
-    if (owned || details.length) { setPro(owned); return owned; }
+    if (owned || details.length) { savePro(owned); setPro(owned); return owned; }
     setPro(isPro); // Store did not answer (offline): keep what we knew
     return isPro;
   } catch (_) { return isPro; }
