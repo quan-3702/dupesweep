@@ -23,6 +23,7 @@ const PRO_SKU = 'dupesweep_pro';
 const PRO_IDS = [PRO_SKU];
 let STORE_URL = 'https://apps.microsoft.com/detail/9P5LWPHRVRZV';
 let proAvailable = false, proSku = PRO_SKU, isPro = false;
+try { if ('getDigitalGoodsService' in window && localStorage.getItem('dupesweep-proavail') === '1') proAvailable = true; } catch (_) {} // keep Pro limits when offline
 try { isPro = localStorage.getItem('dupesweep-pro') === '1'; } catch (_) {}
 const TRIAL_DAYS = 7;
 let trialStart = 0;
@@ -55,19 +56,29 @@ function setPro(v) {
   b.textContent = proLabel();
   b.classList.toggle('is-pro', v || trialActive());
   b.hidden = !proAvailable && !v;
+  $('simTag').hidden = unlocked();
   if (scanned) renderAll();
+}
+async function checkProAfterBuy() {
+  for (let i = 0; i < 6; i++) {
+    if (await checkPro()) return true;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  proMessage('Thank you! If Pro is not unlocked within a minute, click “Restore purchase”.');
+  return false;
 }
 async function checkPro() {
   const svc = await billing();
   if (!svc) return false;
   try {
     const details = await svc.getDetails(PRO_IDS).catch(() => []);
-    proAvailable = details.length > 0;
+    if (details.length) { proAvailable = true; try { localStorage.setItem('dupesweep-proavail', '1'); } catch (_) {} }
     if (details[0]) { proSku = details[0].itemId; if (!PRO_IDS.includes(proSku)) PRO_IDS.push(proSku); }
     const list = await svc.listPurchases();
     const owned = list.some((p) => PRO_IDS.includes(p.itemId));
-    setPro(owned);
-    return owned;
+    if (owned || details.length) { setPro(owned); return owned; }
+    setPro(isPro); // Store did not answer (offline): keep what we knew
+    return isPro;
   } catch (_) { return isPro; }
 }
 function proMessage(text) { const m = $('proMsg'); m.hidden = !text; m.textContent = text || ''; }
@@ -102,7 +113,7 @@ async function buyPro() {
     proMessage('Purchase could not be completed: ' + (e.message || e));
     return;
   }
-  if (await checkPro()) { proMessage('Thank you! Pro is unlocked. ★'); setTimeout(() => $('proDialog').close(), 1500); }
+  if (await checkProAfterBuy()) { proMessage('Thank you! Pro is unlocked. ★'); setTimeout(() => $('proDialog').close(), 1500); }
 }
 const needsPro = (why) => { if (unlocked()) return false; openPro(why); return true; };
 
@@ -200,15 +211,16 @@ function groupBy(arr, key) { const m = new Map(); for (const x of arr) { const k
 async function scan() {
   if (scanning) return;
   scanning = true; stopFlag = false; $('scanBtn').hidden = true; $('stopBtn').hidden = false; $('welcome').hidden = true; $('results').hidden = true;
+  for (const u of thumbUrls.values()) URL.revokeObjectURL(u); thumbUrls.clear(); // ids restart at 0: old thumbnails would show other files
   files = []; emptyDirs = []; dupGroups = []; simGroups = []; selected = new Set(); removed = new Set(); cleanedThisScan = 0; freedThisScan = 0; shown = 60;
-  const t0 = Date.now();
+  const t0 = Date.now(), denied = [];
   try {
     const skip = skipSet(), inclHidden = $('optHidden').checked, counter = { n: 0 };
     setProgress(0.02, 'Looking through folders…');
     for (const r of roots) {
       if (r.handle) {
         if ((await r.handle.queryPermission({ mode: 'readwrite' })) !== 'granted') await r.handle.requestPermission({ mode: 'readwrite' }).catch(() => {});
-        if ((await r.handle.queryPermission({ mode: 'read' })) !== 'granted') { toast(`No permission to read “${r.name}” – skipped.`); continue; }
+        if ((await r.handle.queryPermission({ mode: 'read' })) !== 'granted') { denied.push(r.name); continue; }
         await walk(r.handle, r.name, r, skip, inclHidden, counter);
       } else if (r.files) {
         for (const f of r.files) {
@@ -246,7 +258,7 @@ async function scan() {
     if ($('optSimilar').checked && (!types.size || types.has('img'))) await findSimilar(minSize);
     applyRule('oldest', true);
     scanned = true;
-    toast(`Scan finished in ${Math.max(1, Math.round((Date.now() - t0) / 1000))} s.`);
+    toast(`Scan finished in ${Math.max(1, Math.round((Date.now() - t0) / 1000))} s.` + (denied.length ? ` No permission to read “${denied.join('”, “')}” – skipped.` : ''));
   } catch (e) {
     if (e.message === 'stopped') { toast('Scan stopped. Showing what was found so far.'); scanned = true; }
     else { console.error(e); toast('Scan problem: ' + e.message); }
@@ -293,7 +305,8 @@ const live = (g) => g.items.filter((i) => !removed.has(i));
 function curGroups() { return tab === 'similar' ? simGroups : dupGroups; }
 let keepFolder = '';
 function applyRule(rule, quiet) {
-  const gs = curGroups().concat(quiet ? simGroups : []);
+  let gs = curGroups();
+  if (!quiet && tab === 'similar' && !unlocked()) { const ids = tabIds(); gs = gs.filter((g) => ids.has(g.items[0])); } // free: only the groups that are shown
   for (const g of (quiet ? dupGroups.concat(simGroups) : gs)) {
     const it = live(g).map((i) => files[i]); if (it.length < 2) continue;
     it.forEach((f) => selected.delete(f.id));
@@ -341,7 +354,7 @@ function renderGroups() {
       const head = tab === 'dupes' ? `${it.length} identical copies · ${fmtSize(g.size)} each · <b>${fmtSize(g.size * (it.length - 1))}</b> can be freed` : `${it.length} similar photos · ${fmtSize(it.reduce((n, f) => n + f.size, 0))} in total`;
       return `<div class="group"><div class="gh"><span class="gi">${ICON[it[0].kind]}</span><span>${head}</span></div>${it.map((f) => fileRow(f, g)).join('')}</div>`;
     }).join('');
-    if (locked && gs.length > 2) html += `<div class="lockbox">🔒 ${gs.length - 2} more groups of similar photos found. <button class="primary" id="unlockSim">Unlock with Pro</button></div>`;
+    if (locked && gs.length > 2) html += `<div class="lockbox">🔒 ${gs.length - 2} more group${gs.length === 3 ? '' : 's'} of similar photos found. <button class="primary" id="unlockSim">Unlock with Pro</button></div>`;
     if (!gs.length) html = `<div class="empty-msg">${scanned ? (tab === 'dupes' ? '🎉 No duplicate files found.' : $('optSimilar').checked ? '🎉 No similar photos found.' : 'Turn on “Find similar photos” and scan again.') : ''}</div>`;
     $('moreGroups').innerHTML = !locked && gs.length > shown ? `<button class="ghost wide" id="showMore">Show ${Math.min(60, gs.length - shown)} more groups (${gs.length - shown} left)</button>` : '';
   } else if (tab === 'large') {
@@ -356,13 +369,19 @@ function renderGroups() {
   }
   box.innerHTML = html;
 }
+function tabIds() {
+  if (tab === 'large') return largeShown;
+  if (tab === 'empty') return new Set();
+  let gs = tab === 'dupes' ? dupGroups : simGroups;
+  if (tab === 'similar' && !unlocked()) gs = gs.filter((g) => live(g).length > 1 && filterMatch(g)).slice(0, 2); // free: only the 2 groups shown
+  return new Set(gs.flatMap((g) => g.items));
+}
 function selStats() {
-  let n = 0, bytes = 0;
+  let n = 0, bytes = 0; const ids = tabIds();
   for (const id of selected) {
     if (typeof id === 'string') { if (tab === 'empty' && !removed.has(id)) n++; continue; }
     if (removed.has(id)) continue;
-    const inTab = tab === 'large' ? largeShown.has(id) : (tab === 'dupes' ? dupGroups : simGroups).some((g) => g.items.includes(id));
-    if (!inTab) continue;
+    if (!ids.has(id)) continue;
     n++; bytes += files[id].size;
   }
   return { n, bytes };
@@ -408,12 +427,11 @@ function preview(id) {
 // ---------- cleaning ----------
 let pending = null;
 function selectedItems() {
-  const out = [];
+  const out = [], ids = tabIds();
   for (const id of selected) {
     if (tab === 'empty') { if (typeof id === 'string' && !removed.has(id)) out.push(emptyDirs.find((d) => d.id === id)); continue; }
     if (typeof id !== 'number' || removed.has(id)) continue;
-    const inTab = tab === 'large' ? largeShown.has(id) : (tab === 'dupes' ? dupGroups : simGroups).some((g) => g.items.includes(id));
-    if (inTab) out.push(files[id]);
+    if (ids.has(id)) out.push(files[id]);
   }
   return out.filter(Boolean);
 }

@@ -62,13 +62,16 @@ table.guests { width: 100%; border-collapse: collapse; }
 .pro-msg { background: var(--accent-2); border-radius: 8px; padding: 9px 11px; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #1f2937; color: #fff; padding: 11px 18px; border-radius: 10px; z-index: 50; max-width: calc(100% - 24px); }
 
-#printArea { display: none; }
 @media print {
-  body > *:not(#printArea) { display: none !important; }
-  html, body { display: block; background: #fff; height: auto; }
-  #printArea { display: block; }
-  #printArea .resume { box-shadow: none; min-height: 0 !important; }
-  .resume { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  :root { --bg: #f4f5f9; --card: #fff; --text: #1f2330; --muted: #555; --line: #ccc; }
+  html, body { display: block; background: #fff; color: #000; height: auto; }
+  .tabs, .top-btns, .menu, .side, .actbar, .rbar .inline, #filterIn, #moreGroups, .toast, dialog, #progress, .lockbox button { display: none !important; }
+  .topbar { border: 0; }
+  .pane { display: block; }
+  .main-col { overflow: visible; padding: 0; }
+  .group { break-inside: avoid; }
+  .frow.sel { background: #fff1f0 !important; }
+  .frow, .tag { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
 /* ---------- DupeSweep ---------- */
