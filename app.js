@@ -23,7 +23,7 @@ const PRO_SKU = 'dupesweep_pro';
 const PRO_IDS = [PRO_SKU];
 let STORE_URL = 'https://apps.microsoft.com/detail/9P5LWPHRVRZV';
 let proAvailable = false, proSku = PRO_SKU, isPro = false;
-try { if ('getDigitalGoodsService' in window && localStorage.getItem('dupesweep-proavail') === '1') proAvailable = true; } catch (_) {} // keep Pro limits when offline
+proAvailable = true; // owner's rule: Pro is never free – free limits apply everywhere (website, Store, offline) until Pro is bought
 try { isPro = localStorage.getItem('dupesweep-pro') === '1'; } catch (_) {}
 const TRIAL_DAYS = 7;
 let trialStart = 0;
@@ -72,7 +72,6 @@ async function checkPro() {
   if (!svc) return false;
   try {
     const details = await svc.getDetails(PRO_IDS).catch(() => []);
-    if (details.length) { proAvailable = true; try { localStorage.setItem('dupesweep-proavail', '1'); } catch (_) {} }
     if (details[0]) { proSku = details[0].itemId; if (!PRO_IDS.includes(proSku)) PRO_IDS.push(proSku); }
     const list = await svc.listPurchases();
     const owned = list.some((p) => PRO_IDS.includes(p.itemId));
@@ -93,6 +92,7 @@ async function openPro(reason) {
     $('restoreBtn').hidden = false;
     try {
       const [d] = await svc.getDetails([proSku]);
+      if (!d) proMessage((reason ? reason + ' ' : '') + 'Pro is being added to the Microsoft Store and will be on sale very soon – please check again in a day or two.');
       const price = d && d.price ? new Intl.NumberFormat(undefined, { style: 'currency', currency: d.price.currency }).format(Number(d.price.value)) : '';
       $('buyBtn').textContent = price ? `Unlock Pro – ${price}` : 'Unlock Pro';
     } catch (_) { $('buyBtn').textContent = 'Unlock Pro'; }
@@ -303,6 +303,8 @@ async function findSimilar(minSize) {
 // ---------- selection rules ----------
 const live = (g) => g.items.filter((i) => !removed.has(i));
 function curGroups() { return tab === 'similar' ? simGroups : dupGroups; }
+// free: the first 2 groups of similar photos of this scan – the filter box or cleaning a group must not bring up others
+const freeSimIds = () => new Set(simGroups.slice(0, 2).map((g) => g.id));
 let keepFolder = '';
 function applyRule(rule, quiet) {
   let gs = curGroups();
@@ -346,16 +348,17 @@ function filterMatch(g) { const q = $('filterIn').value.trim().toLowerCase(); re
 function renderGroups() {
   const box = $('groups'); let html = '';
   if (tab === 'dupes' || tab === 'similar') {
-    const gs = curGroups().filter((g) => live(g).length > 1 && filterMatch(g));
-    const locked = tab === 'similar' && !unlocked();
+    const locked = tab === 'similar' && !unlocked(), free = freeSimIds();
+    const gs = curGroups().filter((g) => live(g).length > 1 && filterMatch(g) && (!locked || free.has(g.id)));
     const list = gs.slice(0, locked ? 2 : shown);
     html = list.map((g) => {
       const it = live(g).map((i) => files[i]);
       const head = tab === 'dupes' ? `${it.length} identical copies · ${fmtSize(g.size)} each · <b>${fmtSize(g.size * (it.length - 1))}</b> can be freed` : `${it.length} similar photos · ${fmtSize(it.reduce((n, f) => n + f.size, 0))} in total`;
       return `<div class="group"><div class="gh"><span class="gi">${ICON[it[0].kind]}</span><span>${head}</span></div>${it.map((f) => fileRow(f, g)).join('')}</div>`;
     }).join('');
-    if (locked && gs.length > 2) html += `<div class="lockbox">🔒 ${gs.length - 2} more group${gs.length === 3 ? '' : 's'} of similar photos found. <button class="primary" id="unlockSim">Unlock with Pro</button></div>`;
-    if (!gs.length) html = `<div class="empty-msg">${scanned ? (tab === 'dupes' ? '🎉 No duplicate files found.' : $('optSimilar').checked ? '🎉 No similar photos found.' : 'Turn on “Find similar photos” and scan again.') : ''}</div>`;
+    const more = locked ? simGroups.filter((g) => !free.has(g.id) && live(g).length > 1).length : 0;
+    if (more) html += `<div class="lockbox">🔒 ${more} more group${more === 1 ? '' : 's'} of similar photos found. <button class="primary" id="unlockSim">Unlock with Pro</button></div>`;
+    if (!gs.length && !more) html = `<div class="empty-msg">${scanned ? (tab === 'dupes' ? '🎉 No duplicate files found.' : $('optSimilar').checked ? '🎉 No similar photos found.' : 'Turn on “Find similar photos” and scan again.') : ''}</div>`;
     $('moreGroups').innerHTML = !locked && gs.length > shown ? `<button class="ghost wide" id="showMore">Show ${Math.min(60, gs.length - shown)} more groups (${gs.length - shown} left)</button>` : '';
   } else if (tab === 'large') {
     const big = files.filter((f) => !removed.has(f.id) && (!types.size || types.has(f.kind))).sort((a, b) => b.size - a.size).slice(0, 200).filter((f) => filterMatch({ items: [f.id] }));
@@ -373,7 +376,7 @@ function tabIds() {
   if (tab === 'large') return largeShown;
   if (tab === 'empty') return new Set();
   let gs = tab === 'dupes' ? dupGroups : simGroups;
-  if (tab === 'similar' && !unlocked()) gs = gs.filter((g) => live(g).length > 1 && filterMatch(g)).slice(0, 2); // free: only the 2 groups shown
+  if (tab === 'similar' && !unlocked()) { const free = freeSimIds(); gs = gs.filter((g) => free.has(g.id) && live(g).length > 1 && filterMatch(g)); } // free: only the 2 groups shown
   return new Set(gs.flatMap((g) => g.items));
 }
 function selStats() {
